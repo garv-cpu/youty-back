@@ -1,16 +1,17 @@
 import express from "express";
 import cors from "cors";
 import ytdl from "@distube/ytdl-core";
-import { exec } from "child_process";
 import fs from "fs";
 import path from "path";
 import rateLimit from "express-rate-limit";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
-dotenv.config();
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import { CronJob } from "cron";
+import ytDlp from "yt-dlp-exec";  // Import yt-dlp-exec
+
+dotenv.config();
 
 // Define __filename and __dirname manually for ES module support
 const __filename = fileURLToPath(import.meta.url);
@@ -61,22 +62,19 @@ app.post("/convert", async (req, res) => {
     const outputFileName = `output-${videoId}.mp3`;
     const outputPath = path.join("/tmp", outputFileName); // /tmp for Render
 
-    // Use yt-dlp (ffmpeg must be in PATH on Render)
-    exec(
-      `yt-dlp -x --audio-format mp3 --output "${outputPath}" ${url}`,
-      async (error) => {
-        if (error) {
-          console.error("Error converting video:", error);
-          return res.status(500).json({ error: "Conversion failed" });
-        }
+    // Use yt-dlp-exec programmatically
+    await ytDlp(url, {
+      extractAudio: true,
+      audioFormat: "mp3",
+      output: outputPath,
+      ffmpegLocation: "ffmpeg", // assumes ffmpeg is in PATH
+    });
 
-        const downloadUrl = `https://youty-back.onrender.com/downloads/${outputFileName}`;
-        return res.json({ downloadUrl });
-      }
-    );
+    const downloadUrl = `https://youty-back.onrender.com/downloads/${outputFileName}`;
+    return res.json({ downloadUrl });
   } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ error: "Server error" });
+    console.error("Error converting video:", error);
+    return res.status(500).json({ error: "Conversion failed" });
   }
 });
 
