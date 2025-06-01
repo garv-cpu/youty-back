@@ -1,0 +1,23 @@
+# Use official Node.js image as base
+FROM node:18-slim
+
+# Install ffmpeg
+RUN apt-get update && apt-get install -y ffmpeg
+
+# Set working directory in container
+WORKDIR /app
+
+# Copy package.json and package-lock.json (if present)
+COPY package*.json ./
+
+# Install npm dependencies
+RUN npm install
+
+# Copy all source files
+COPY . .
+
+# Expose port the app will listen on (default 5000)
+EXPOSE 5000
+
+# Start your app
+CMD ["node", "server.js"]
